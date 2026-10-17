@@ -1,5 +1,6 @@
 package com.foody.delivery.security;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 import org.springframework.context.annotation.Bean;
@@ -22,6 +23,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.foody.delivery.user.UserRepository;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 @Configuration
 public class SecurityConfig {
 
@@ -38,16 +41,25 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 						.requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
 						.requestMatchers("/error").permitAll()
+						.requestMatchers("/api/seller/**").hasRole("SELLER")
+						.requestMatchers("/api/orders/**").hasRole("CUSTOMER")
 						.anyRequest().authenticated())
-				.exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, e) -> {
-					response.setStatus(HttpStatus.UNAUTHORIZED.value());
-					response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-					response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-					response.getWriter().write("""
-							{"title":"Unauthorized","status":401,"detail":"Autenticação necessária."}""");
-				}))
+				.exceptionHandling(ex -> ex
+						.authenticationEntryPoint((request, response, e) -> writeProblem(response,
+								HttpStatus.UNAUTHORIZED, "Autenticação necessária."))
+						.accessDeniedHandler((request, response, e) -> writeProblem(response,
+								HttpStatus.FORBIDDEN, "Você não tem permissão para acessar este recurso.")))
 				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 				.build();
+	}
+
+	private static void writeProblem(HttpServletResponse response, HttpStatus status, String detail)
+			throws IOException {
+		response.setStatus(status.value());
+		response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
+		response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+		response.getWriter().write("""
+				{"title":"%s","status":%d,"detail":"%s"}""".formatted(status.getReasonPhrase(), status.value(), detail));
 	}
 
 	@Bean

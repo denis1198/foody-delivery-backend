@@ -1,9 +1,9 @@
 package com.foody.delivery.user;
 
-public record UserResponse(Long id, String name, String email) {
+public record UserResponse(Long id, String name, String email, Role role) {
 
 	public static UserResponse from(User user) {
-		return new UserResponse(user.getId(), user.getName(), user.getEmail());
+		return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole());
 	}
 
 }

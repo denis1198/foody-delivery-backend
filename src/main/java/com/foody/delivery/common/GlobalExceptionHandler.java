@@ -27,6 +27,13 @@ public class GlobalExceptionHandler {
 		return problem;
 	}
 
+	@ExceptionHandler(BadRequestException.class)
+	ProblemDetail handleBadRequest(BadRequestException ex) {
+		ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "Dados inválidos.");
+		problem.setProperty("errors", Map.of(ex.getField(), ex.getMessage()));
+		return problem;
+	}
+
 	@ExceptionHandler(HttpMessageNotReadableException.class)
 	ProblemDetail handleUnreadable(HttpMessageNotReadableException ex) {
 		return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,

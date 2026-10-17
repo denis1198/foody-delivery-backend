@@ -1,17 +1,13 @@
 package com.foody.delivery.order.dto;
 
-import java.math.BigDecimal;
-
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+/** Item do carrinho. Preço e custo nunca vêm do cliente: são lidos do cardápio. */
 public record OrderItemRequest(
-		@NotBlank @Size(max = 255) String productName,
-		@NotNull @Min(1) @Max(999) Integer quantity,
-		@NotNull @DecimalMin("0.01") @Digits(integer = 8, fraction = 2) BigDecimal unitPrice) {
+		@NotNull Long productId,
+		@NotNull @Min(1) @Max(99) Integer quantity,
+		@Size(max = 300) String notes) {
 }

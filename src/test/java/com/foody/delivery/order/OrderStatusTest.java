@@ -15,6 +15,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
+import com.foody.delivery.restaurant.Restaurant;
+import com.foody.delivery.user.Role;
+import com.foody.delivery.user.User;
+
 class OrderStatusTest {
 
 	@ParameterizedTest
@@ -51,11 +55,13 @@ class OrderStatusTest {
 
 	@Test
 	void orderStartsReceivedAndRejectsInvalidTransition() {
-		var order = new Order("Cliente", null,
-				List.of(new OrderItem("Lanche", 2, new BigDecimal("10.50"))), null);
+		var restaurant = new Restaurant(new User("Dono", "dono@foody.com", "x", Role.SELLER), "Lanchonete", "Lanches");
+		var order = new Order(new User("Cliente", "cliente@foody.com", "x", Role.CUSTOMER), restaurant, null,
+				List.of(new OrderItem(null, "Lanche", 2, new BigDecimal("10.50"), new BigDecimal("4.00"), null)),
+				PaymentMethod.PIX, null);
 
 		assertThat(order.getStatus()).isEqualTo(RECEBIDO);
-		assertThat(order.getTotal()).isEqualByComparingTo("21.00");
+		assertThat(order.getSubtotal()).isEqualByComparingTo("21.00");
 
 		order.changeStatus(EM_PREPARO);
 		assertThat(order.getStatus()).isEqualTo(EM_PREPARO);

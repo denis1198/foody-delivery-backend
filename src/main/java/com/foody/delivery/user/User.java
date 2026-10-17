@@ -24,6 +24,7 @@ public class User implements UserDetails {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(columnDefinition = "integer") // no SQLite, só INTEGER PRIMARY KEY vira autoincremento (rowid)
 	private Long id;
 
 	@Column(nullable = false, length = 120)

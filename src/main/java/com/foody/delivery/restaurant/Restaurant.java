@@ -26,6 +26,7 @@ public class Restaurant {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(columnDefinition = "integer") // no SQLite, só INTEGER PRIMARY KEY vira autoincremento (rowid)
 	private Long id;
 
 	@OneToOne(fetch = FetchType.LAZY, optional = false)

@@ -1,6 +1,13 @@
 spring:
   datasource:
-    url: jdbc:sqlite:target/test-foody.db
+    # Banco novo a cada execução. Usa "update" (e não create/create-drop) porque, com o dialeto
+    # community do SQLite, o caminho de "create" gera algumas chaves primárias sem tipo, e no SQLite
+    # só "INTEGER PRIMARY KEY" vira autoincremento — os ids ficariam nulos.
+    url: jdbc:sqlite:target/test-foody-${random.uuid}.db
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: update
+
+app:
+  seed:
+    enabled: false

@@ -24,6 +24,7 @@ public class Product {
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(columnDefinition = "integer") // no SQLite, só INTEGER PRIMARY KEY vira autoincremento (rowid)
 	private Long id;
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)

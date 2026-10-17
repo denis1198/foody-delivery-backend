@@ -18,7 +18,11 @@ public record DashboardResponse(
 		List<TopProduct> topProducts,
 		List<StatusCount> statusBreakdown) {
 
-	public record Period(LocalDate from, LocalDate to, int days) {
+	/**
+	 * {@code comparedUntilNow}: o período inclui hoje, então {@code previous} foi cortado no mesmo horário
+	 * (ex.: hoje até agora × ontem até a mesma hora).
+	 */
+	public record Period(LocalDate from, LocalDate to, int days, boolean comparedUntilNow) {
 	}
 
 	/**

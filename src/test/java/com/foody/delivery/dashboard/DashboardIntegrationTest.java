@@ -7,10 +7,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,15 +65,18 @@ class DashboardIntegrationTest {
 
 	private String sellerToken;
 	private String customerToken;
+	private User customer;
+	private Restaurant restaurant;
+	private Product burger;
 
 	@BeforeEach
 	void seedWeek() {
 		transaction.executeWithoutResult(tx -> {
 			User seller = persist(new User("Dono", unique("dono"), "x", Role.SELLER));
-			User customer = persist(new User("Cliente", unique("cliente"), "x", Role.CUSTOMER));
-			Restaurant restaurant = persist(new Restaurant(seller, "Teste", "Lanches"));
+			customer = persist(new User("Cliente", unique("cliente"), "x", Role.CUSTOMER));
+			restaurant = persist(new Restaurant(seller, "Teste", "Lanches"));
 			MenuCategory category = persist(new MenuCategory(restaurant, "Tudo", 0));
-			Product burger = persist(new Product(restaurant, category, "Burger", null, new BigDecimal("50.00"),
+			burger = persist(new Product(restaurant, category, "Burger", null, new BigDecimal("50.00"),
 					new BigDecimal("20.00"), null, null, true, 0));
 			Product juice = persist(new Product(restaurant, category, "Suco", null, new BigDecimal("10.00"),
 					new BigDecimal("4.00"), null, null, true, 1));
@@ -127,6 +133,33 @@ class DashboardIntegrationTest {
 	}
 
 	@Test
+	void todayIsComparedWithYesterdayUntilTheSameTime() throws Exception {
+		// Pedidos a ±30 min do horário atual precisam cair em "ontem" e "hoje": evita a virada do dia.
+		int hour = BusinessTime.local(Instant.now()).getHour();
+		Assumptions.assumeTrue(hour >= 1 && hour < 23, "perto da meia-noite");
+
+		Instant now = Instant.now();
+		Instant yesterday = now.minus(1, ChronoUnit.DAYS);
+		transaction.executeWithoutResult(tx -> {
+			orderAt(now.minus(10, ChronoUnit.MINUTES), item(burger, 1));
+			orderAt(yesterday.minus(30, ChronoUnit.MINUTES), item(burger, 2)); // antes do horário atual: entra
+			orderAt(yesterday.plus(30, ChronoUnit.MINUTES), item(burger, 5)); // depois do horário atual: fora
+		});
+
+		String today = BusinessTime.today().toString();
+		mvc.perform(as(sellerToken, get("/api/seller/dashboard").param("from", today).param("to", today)))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.period.comparedUntilNow").value(true))
+				.andExpect(jsonPath("$.summary.revenue").value(50.00))
+				.andExpect(jsonPath("$.previous.salesCount").value(1))
+				.andExpect(jsonPath("$.previous.revenue").value(100.00));
+
+		// Período já fechado compara com o anterior inteiro.
+		mvc.perform(as(sellerToken, get("/api/seller/dashboard").param("from", "2026-01-05").param("to", "2026-01-11")))
+				.andExpect(jsonPath("$.period.comparedUntilNow").value(false));
+	}
+
+	@Test
 	void validatesPeriodAndRole() throws Exception {
 		mvc.perform(as(sellerToken, get("/api/seller/dashboard").param("from", "2026-01-11").param("to", "2026-01-05")))
 				.andExpect(status().isBadRequest())
@@ -146,6 +179,13 @@ class DashboardIntegrationTest {
 			order.changeStatus(OrderStatus.ENTREGUE);
 		}
 		var placed = day.atTime(LocalTime.parse(time)).atZone(BusinessTime.ZONE).toInstant();
+		order.placedAt(placed, placed);
+		em.persist(order);
+	}
+
+	private void orderAt(Instant placed, OrderItem... items) {
+		Order order = new Order(customer, restaurant, new DeliveryAddress("Rua A", "1", null, "Centro", "SP", "0"),
+				List.of(items), PaymentMethod.PIX, null);
 		order.placedAt(placed, placed);
 		em.persist(order);
 	}

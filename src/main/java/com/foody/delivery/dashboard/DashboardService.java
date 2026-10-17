@@ -5,6 +5,7 @@ import static java.math.BigDecimal.ZERO;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.DayOfWeek;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.TextStyle;
 import java.time.temporal.ChronoUnit;
@@ -74,7 +75,15 @@ public class DashboardService {
 
 		Restaurant restaurant = restaurantService.ofSeller(seller);
 		List<Order> current = load(restaurant, start, end);
-		List<Order> previous = load(restaurant, start.minusDays(days), start.minusDays(1));
+		// Se o período inclui hoje, ele ainda está pela metade: compara com o anterior só até o mesmo horário
+		// (ex.: hoje até 10h × ontem até 10h), senão a variação sairia sempre negativa durante o dia.
+		boolean inProgress = !end.isBefore(today);
+		Instant previousStart = BusinessTime.startOf(start.minusDays(days));
+		Instant previousEnd = inProgress
+				? Instant.now().minus(days, ChronoUnit.DAYS)
+				: BusinessTime.startOf(start);
+		List<Order> previous = orders.findAllByRestaurantIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(
+				restaurant.getId(), previousStart, previousEnd);
 		List<Order> sales = current.stream().filter(DashboardService::isSale).toList();
 
 		// Dias futuros não existem ainda; e o dia de hoje, incompleto, não entra nas comparações entre dias.
@@ -86,7 +95,7 @@ public class DashboardService {
 
 		Map<LocalDate, DayPoint> byDay = byDay(sales, chartDays);
 		return new DashboardResponse(
-				new Period(start, end, days),
+				new Period(start, end, days, inProgress),
 				summarize(current),
 				summarize(previous),
 				List.copyOf(byDay.values()),

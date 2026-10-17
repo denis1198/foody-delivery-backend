@@ -1,7 +1,9 @@
 package com.foody.delivery.order.dto;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.Comparator;
 import java.util.List;
 
 import com.foody.delivery.order.DeliveryAddress;
@@ -16,6 +18,7 @@ public record OrderResponse(
 		List<Item> items,
 		BigDecimal total,
 		OrderStatus status,
+		List<OrderStatus> nextStatuses,
 		String createdBy,
 		Instant createdAt,
 		Instant updatedAt) {
@@ -33,7 +36,8 @@ public record OrderResponse(
 	public record Item(Long id, String productName, int quantity, BigDecimal unitPrice, BigDecimal subtotal) {
 
 		static Item from(OrderItem i) {
-			return new Item(i.getId(), i.getProductName(), i.getQuantity(), i.getUnitPrice(), i.getSubtotal());
+			return new Item(i.getId(), i.getProductName(), i.getQuantity(), money(i.getUnitPrice()),
+					money(i.getSubtotal()));
 		}
 
 	}
@@ -44,11 +48,17 @@ public record OrderResponse(
 				order.getCustomerName(),
 				Address.from(order.getDeliveryAddress()),
 				order.getItems().stream().map(Item::from).toList(),
-				order.getTotal(),
+				money(order.getTotal()),
 				order.getStatus(),
+				order.getStatus().nextStatuses().stream().sorted(Comparator.naturalOrder()).toList(),
 				order.getCreatedBy().getName(),
 				order.getCreatedAt(),
 				order.getUpdatedAt());
+	}
+
+	/** SQLite não preserva a escala do NUMERIC; padroniza valores monetários com 2 casas. */
+	private static BigDecimal money(BigDecimal value) {
+		return value.setScale(2, RoundingMode.HALF_UP);
 	}
 
 }

@@ -78,6 +78,9 @@ public class Order {
 	}
 
 	public void changeStatus(OrderStatus newStatus) {
+		if (!status.canTransitionTo(newStatus)) {
+			throw new InvalidStatusTransitionException(status, newStatus);
+		}
 		this.status = newStatus;
 	}
 

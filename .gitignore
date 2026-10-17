@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Banco SQLite local ###
+data/
+*.db

@@ -1,0 +1,6 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:target/test-foody.db
+  jpa:
+    hibernate:
+      ddl-auto: create-drop

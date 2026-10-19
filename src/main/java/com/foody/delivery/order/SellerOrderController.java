@@ -1,13 +1,16 @@
 package com.foody.delivery.order;
 
+import java.time.LocalDate;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.foody.delivery.order.dto.OrderResponse;
@@ -27,10 +30,18 @@ public class SellerOrderController {
 		this.orderService = orderService;
 	}
 
-	/** Pedidos em andamento + finalizados hoje. */
+	/**
+	 * Sem datas: o quadro (pedidos em andamento + criados hoje). Com {@code from}/{@code to}: todos os pedidos
+	 * criados no período, em qualquer status.
+	 */
 	@GetMapping
-	public List<OrderResponse> board(@AuthenticationPrincipal User seller) {
-		return orderService.board(seller);
+	public List<OrderResponse> list(@AuthenticationPrincipal User seller,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+		if (from == null && to == null) {
+			return orderService.board(seller);
+		}
+		return orderService.history(seller, from, to);
 	}
 
 	@GetMapping("/{id}")

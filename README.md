@@ -71,6 +71,7 @@ Todas as rotas exigem `Authorization: Bearer <token>`, exceto cadastro e login. 
 | vendedor | `POST` `PUT` `DELETE` | `/api/seller/menu/products[/{id}]` | Produtos (excluir arquiva, preservando o histórico) |
 | vendedor | `PATCH` | `/api/seller/menu/products/{id}/availability` | Disponível/esgotado |
 | vendedor | `GET` | `/api/seller/orders` | Quadro: pedidos em andamento + finalizados hoje |
+| vendedor | `GET` | `/api/seller/orders?from=YYYY-MM-DD&to=YYYY-MM-DD` | Histórico: todos os pedidos da loja criados no período (até 366 dias), em qualquer status |
 | vendedor | `GET` · `PATCH` | `/api/seller/orders/{id}` · `/{id}/status` | Detalhe (com financeiro) e avanço de status |
 | vendedor | `GET` | `/api/seller/dashboard?from=YYYY-MM-DD&to=YYYY-MM-DD` | Métricas do período |
 

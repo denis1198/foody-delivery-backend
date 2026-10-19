@@ -28,6 +28,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 	List<Order> findBoard(@Param("restaurantId") Long restaurantId,
 			@Param("activeStatuses") Collection<OrderStatus> activeStatuses, @Param("since") Instant since);
 
+	/** Histórico do vendedor: todos os pedidos criados em [{@code from}, {@code to}), mais recentes primeiro. */
+	@EntityGraph(attributePaths = { "items", "restaurant", "customer" })
+	@Query("""
+			select o from Order o
+			where o.restaurant.id = :restaurantId
+			  and o.createdAt >= :from and o.createdAt < :to
+			order by o.createdAt desc, o.id desc""")
+	List<Order> findHistory(@Param("restaurantId") Long restaurantId, @Param("from") Instant from,
+			@Param("to") Instant to);
+
 	@EntityGraph(attributePaths = { "items" })
 	List<Order> findAllByRestaurantIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThan(Long restaurantId,
 			Instant from, Instant to);

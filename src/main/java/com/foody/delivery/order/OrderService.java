@@ -1,5 +1,7 @@
 package com.foody.delivery.order;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -9,6 +11,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.foody.delivery.common.BadRequestException;
 import com.foody.delivery.common.BusinessTime;
 import com.foody.delivery.common.ConflictException;
 import com.foody.delivery.common.NotFoundException;
@@ -27,6 +30,8 @@ public class OrderService {
 	private static final List<OrderStatus> ACTIVE_STATUSES = Arrays.stream(OrderStatus.values())
 			.filter(s -> !s.isFinal())
 			.toList();
+
+	private static final int MAX_HISTORY_DAYS = 366;
 
 	private final OrderRepository orders;
 	private final ProductRepository products;
@@ -98,6 +103,27 @@ public class OrderService {
 	public List<OrderResponse> board(User seller) {
 		Restaurant restaurant = restaurantService.ofSeller(seller);
 		return orders.findBoard(restaurant.getId(), ACTIVE_STATUSES, BusinessTime.startOf(BusinessTime.today()))
+				.stream()
+				.map(OrderResponse::forSeller)
+				.toList();
+	}
+
+	/**
+	 * Todos os pedidos do restaurante criados entre {@code from} e {@code to} (inclusivos, dias de Brasília),
+	 * em qualquer status. Sem {@code from}, vale só o dia {@code to}; sem {@code to}, até hoje.
+	 */
+	@Transactional(readOnly = true)
+	public List<OrderResponse> history(User seller, LocalDate from, LocalDate to) {
+		LocalDate end = to != null ? to : BusinessTime.today();
+		LocalDate start = from != null ? from : end;
+		if (start.isAfter(end)) {
+			throw new BadRequestException("from", "A data inicial deve ser anterior ou igual à final.");
+		}
+		if (ChronoUnit.DAYS.between(start, end) + 1 > MAX_HISTORY_DAYS) {
+			throw new BadRequestException("from", "O período pode ter no máximo " + MAX_HISTORY_DAYS + " dias.");
+		}
+		Restaurant restaurant = restaurantService.ofSeller(seller);
+		return orders.findHistory(restaurant.getId(), BusinessTime.startOf(start), BusinessTime.startOf(end.plusDays(1)))
 				.stream()
 				.map(OrderResponse::forSeller)
 				.toList();
